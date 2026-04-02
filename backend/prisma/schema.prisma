@@ -1,0 +1,182 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and customer management
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  password          String
+  name              String
+  phone             String?
+  profilePicture    String?
+  role              Role      @default(CUSTOMER)
+  isActive          Boolean   @default(true)
+  isDeleted         Boolean   @default(false)
+  lastLoginAt       DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  passwordChangedAt DateTime?
+
+  bookings Booking[]
+  reviews   Review[]
+  sessions  Session[]
+  
+  @@index([email])
+  @@index([isActive])
+  @@index([isDeleted])
+  @@index([lastLoginAt])
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+// Session model for tracking user sessions
+model Session {
+  id        String   @id @default(cuid())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+}
+
+// Room model for hotel accommodations
+model Room {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String
+  capacity    Int
+  basePrice   Float
+  description String?  @db.Text
+  images      Json
+  amenities   Json?
+  hasKitchen  Boolean  @default(false)
+  hasBalcony  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
+  roomNumber         String?  @unique
+  floor              Int      @default(1)
+  size               Int      @default(25)
+  bedType            String   @default("Queen")
+  view               String   @default("City View")
+  policies           Json?
+  cancellationPolicy String   @default("Free cancellation 48 hours before check-in")
+  depositRequired    Boolean  @default(false)
+  maxStay            Int      @default(30)
+  minStay            Int      @default(1)
+  breakfastIncluded  Boolean  @default(false)
+  wifiSpeed          String   @default("100 Mbps")
+  parkingAvailable   Boolean  @default(true)
+}
+
+
+model HotelSettings {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// Booking model for reservations
+model Booking {
+  id                 Int          @id @default(autoincrement())
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             Int
+  room               Room         @relation(fields: [roomId], references: [id])
+  roomId             Int
+  checkIn            DateTime
+  checkOut           DateTime
+  adults             Int
+  children           Int          @default(0)
+  specialRequest     String?      @db.Text
+  status             BookingStatus @default(PENDING)
+  totalPrice         Float
+  paymentIntentId    String?
+  needsAirportShuttle Boolean     @default(false)
+  flightNumber       String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
+  @@index([checkIn, checkOut])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// Offer model for promotions and discounts
+model Offer {
+  id               Int      @id @default(autoincrement())
+  title            String
+  description      String?  @db.Text
+  discountPercent  Float
+  startDate        DateTime
+  endDate          DateTime
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Review model for guest feedback
+model Review {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([rating])
+}
+
+// Service model for additional hotel services
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?  @db.Text
+  price       Float?
+  category    String
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Event model for hotel events and activities
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  date        DateTime
+  capacity    Int
+  price       Float
+  images      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
