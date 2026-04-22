@@ -1,4 +1,5 @@
 /* Custom animations and styles beyond Tailwind */
+
 @keyframes fadeIn {
   from {
     opacity: 0;
